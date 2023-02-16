@@ -1,9 +1,12 @@
-﻿using KitchenLib;
-using UnityEngine;
+﻿using Kitchen;
+using KitchenData;
+using KitchenLib;
+using KitchenLib.Event;
+using KitchenLib.References;
+using KitchenLib.Utils;
+using KitchenMods;
 using System.Reflection;
-using Unity.Entities;
-using System.Diagnostics.CodeAnalysis;
-using System;
+using UnityEngine;
 
 // Namespace should have "Kitchen" in the beginning
 namespace KitchenBetterTableAssignment
@@ -15,23 +18,77 @@ namespace KitchenBetterTableAssignment
         // mod version must follow semver e.g. "1.2.3"
         public const string MOD_GUID = "IcedMilo.PlateUp.BetterTableAssignment";
         public const string MOD_NAME = "BetterTableAssignment";
-        public const string MOD_VERSION = "0.1.0";
+        public const string MOD_VERSION = "1.0.0";
         public const string MOD_AUTHOR = "IcedMilo";
         public const string MOD_GAMEVERSION = ">=1.1.1";
         // Game version this mod is designed for in semver
         // e.g. ">=1.1.1" current and all future
         // e.g. ">=1.1.1 <=1.2.3" for all from/until
 
+        internal static Main Instance;
+        internal static PreferencesManager PrefManager;
+        internal const string BAR_TABLE_ID = "barTable";
+        internal const string SIMPLE_TABLE_ID = "simpleTable";
+        internal const string FANCY_TABLE_ID = "fancyTable";
+        internal const string METAL_TABLE_ID = "metalTable";
+        internal const string UNKNOWN_TABLE_ID = "otherTable";
 
         public Main() : base(MOD_GUID, MOD_NAME, MOD_AUTHOR, MOD_VERSION, MOD_GAMEVERSION, Assembly.GetExecutingAssembly()) { }
 
-        protected override void Initialise()
+        protected override void OnPostActivate(Mod mod)
         {
-            base.Initialise();
             // For log file output so the official plateup support staff can identify if/which a mod is being used
             LogWarning($"{MOD_GUID} v{MOD_VERSION} in use!");
+            Instance = this;
+            PrefManager = new PreferencesManager(MOD_GUID, MOD_NAME);
+            SetupMenu();
 
-            World.GetExistingSystem<NewGroupHandleQueue>().Enabled = false;
+            Events.BuildGameDataEvent += delegate
+            {
+                Appliance barTable = GDOUtils.GetExistingGDO(ApplianceReferences.TableBar) as Appliance;
+                bool found = false;
+                for (int i = 0; i < barTable.Properties.Count; i++)
+                {
+                    if (barTable.Properties[i].GetType() == typeof(CTablePrioritiseCorrectGroups))
+                    {
+                        found = true;
+                        LogInfo("Successfully removed CTablePrioritiseCorrectGroups from Bar Tables");
+                        barTable.Properties.RemoveAt(i);
+                    }
+                }
+                if (!found)
+                {
+                    LogWarning("Failed to remove CTablePrioritiseCorrectGroups from Bar Tables!");
+                }
+            };
+        }
+
+        private void SetupMenu()
+        {
+            PrefManager.AddLabel("Better Table Assignment");
+            PrefManager.AddInfo("Assign table priority. Customers will prefer tables with a higher priority.");
+
+            PrefManager.AddInfo("Highest priority: 1");
+            PrefManager.AddInfo("Lowest priotity : 5");
+
+            int[] ints = { 1, 2, 3, 4, 5 };
+            string[] strings = { "1", "2", "3", "4", "5" };
+
+            PrefManager.AddLabel("Bar Table");
+            PrefManager.AddOption<int>(BAR_TABLE_ID, "Bar Table", 1, ints, strings);
+            PrefManager.AddLabel("Simple Table");
+            PrefManager.AddOption<int>(SIMPLE_TABLE_ID, "Simple Table", 1, ints, strings);
+            PrefManager.AddLabel("Fancy Table");
+            PrefManager.AddOption<int>(FANCY_TABLE_ID, "Fancy Table", 1, ints, strings);
+            PrefManager.AddLabel("Metal Table");
+            PrefManager.AddOption<int>(METAL_TABLE_ID, "Metal Table", 1, ints, strings);
+            PrefManager.AddLabel("Others");
+            PrefManager.AddOption<int>(UNKNOWN_TABLE_ID, "Others", 1, ints, strings);
+
+            PrefManager.AddSpacer();
+            PrefManager.AddSpacer();
+
+            PrefManager.RegisterMenu(PreferencesManager.MenuType.PauseMenu);
         }
 
         #region Logging

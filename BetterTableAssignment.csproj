@@ -116,10 +116,11 @@
     <Reference Include="System.Data" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="NewGroupHandleQueue.cs" />
     <Compile Include="Main.cs" />
-    <None Include="Patches\GroupHandleQueue_Patch.cs" />
+    <Compile Include="Patches\LocationComparer_Patch.cs" />
+    <Compile Include="PreferencesManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TableController.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
