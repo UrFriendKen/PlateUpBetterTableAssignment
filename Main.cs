@@ -1,94 +1,79 @@
-﻿using Kitchen;
-using KitchenData;
-using KitchenLib;
-using KitchenLib.Event;
-using KitchenLib.References;
-using KitchenLib.Utils;
+﻿using HarmonyLib;
 using KitchenMods;
+using PreferenceSystem;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
 // Namespace should have "Kitchen" in the beginning
 namespace KitchenBetterTableAssignment
 {
-    public class Main : BaseMod
+    public class Main : IModInitializer
     {
-        // guid must be unique and is recommended to be in reverse domain name notation
-        // mod name that is displayed to the player and listed in the mods menu
-        // mod version must follow semver e.g. "1.2.3"
         public const string MOD_GUID = "IcedMilo.PlateUp.BetterTableAssignment";
         public const string MOD_NAME = "BetterTableAssignment";
-        public const string MOD_VERSION = "1.0.0";
-        public const string MOD_AUTHOR = "IcedMilo";
-        public const string MOD_GAMEVERSION = ">=1.1.1";
-        // Game version this mod is designed for in semver
-        // e.g. ">=1.1.1" current and all future
-        // e.g. ">=1.1.1 <=1.2.3" for all from/until
+        public const string MOD_VERSION = "1.0.1";
 
-        internal static Main Instance;
-        internal static PreferencesManager PrefManager;
+        internal static PreferenceSystemManager PrefManager;
         internal const string BAR_TABLE_ID = "barTable";
         internal const string SIMPLE_TABLE_ID = "simpleTable";
         internal const string FANCY_TABLE_ID = "fancyTable";
         internal const string METAL_TABLE_ID = "metalTable";
         internal const string UNKNOWN_TABLE_ID = "otherTable";
 
-        public Main() : base(MOD_GUID, MOD_NAME, MOD_AUTHOR, MOD_VERSION, MOD_GAMEVERSION, Assembly.GetExecutingAssembly()) { }
+        Harmony _harmony;
+        static List<Assembly> PatchedAssemblies = new List<Assembly>();
 
-        protected override void OnPostActivate(Mod mod)
+        public Main()
+        {
+            if (_harmony == null)
+            {
+                _harmony = new Harmony(MOD_GUID);
+            }
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            if (assembly != null && !PatchedAssemblies.Contains(assembly))
+            {
+                _harmony.PatchAll(assembly);
+                PatchedAssemblies.Add(assembly);
+            }
+        }
+
+        public void PostActivate(Mod mod)
         {
             // For log file output so the official plateup support staff can identify if/which a mod is being used
             LogWarning($"{MOD_GUID} v{MOD_VERSION} in use!");
-            Instance = this;
-            PrefManager = new PreferencesManager(MOD_GUID, MOD_NAME);
-            SetupMenu();
-
-            Events.BuildGameDataEvent += delegate
-            {
-                Appliance barTable = GDOUtils.GetExistingGDO(ApplianceReferences.TableBar) as Appliance;
-                bool found = false;
-                for (int i = 0; i < barTable.Properties.Count; i++)
-                {
-                    if (barTable.Properties[i].GetType() == typeof(CTablePrioritiseCorrectGroups))
-                    {
-                        found = true;
-                        LogInfo("Successfully removed CTablePrioritiseCorrectGroups from Bar Tables");
-                        barTable.Properties.RemoveAt(i);
-                    }
-                }
-                if (!found)
-                {
-                    LogWarning("Failed to remove CTablePrioritiseCorrectGroups from Bar Tables!");
-                }
-            };
+            SetupPreferences();
         }
 
-        private void SetupMenu()
-        {
-            PrefManager.AddLabel("Better Table Assignment");
-            PrefManager.AddInfo("Assign table priority. Customers will prefer tables with a higher priority.");
+        public void PreInject() { }
 
-            PrefManager.AddInfo("Highest priority: 1");
-            PrefManager.AddInfo("Lowest priotity : 5");
+        public void PostInject() { }
+
+        private void SetupPreferences()
+        {
+            PrefManager = new PreferenceSystemManager(MOD_GUID, MOD_NAME);
 
             int[] ints = { 1, 2, 3, 4, 5 };
             string[] strings = { "1", "2", "3", "4", "5" };
+            PrefManager
+                .AddLabel("Better Table Assignment")
+                .AddInfo("Assign table priority. Customers will prefer tables with a higher priority.")
+                .AddInfo("Highest priority: 1")
+                .AddInfo("Lowest priotity : 5")
+                .AddLabel("Bar Table")
+                .AddOption<int>(BAR_TABLE_ID, 1, ints, strings)
+                .AddLabel("Simple Table")
+                .AddOption<int>(SIMPLE_TABLE_ID, 1, ints, strings)
+                .AddLabel("Fancy Table")
+                .AddOption<int>(FANCY_TABLE_ID, 1, ints, strings)
+                .AddLabel("Metal Table")
+                .AddOption<int>(METAL_TABLE_ID, 1, ints, strings)
+                .AddLabel("Others")
+                .AddOption<int>(UNKNOWN_TABLE_ID, 1, ints, strings)
+                .AddSpacer()
+                .AddSpacer();
 
-            PrefManager.AddLabel("Bar Table");
-            PrefManager.AddOption<int>(BAR_TABLE_ID, "Bar Table", 1, ints, strings);
-            PrefManager.AddLabel("Simple Table");
-            PrefManager.AddOption<int>(SIMPLE_TABLE_ID, "Simple Table", 1, ints, strings);
-            PrefManager.AddLabel("Fancy Table");
-            PrefManager.AddOption<int>(FANCY_TABLE_ID, "Fancy Table", 1, ints, strings);
-            PrefManager.AddLabel("Metal Table");
-            PrefManager.AddOption<int>(METAL_TABLE_ID, "Metal Table", 1, ints, strings);
-            PrefManager.AddLabel("Others");
-            PrefManager.AddOption<int>(UNKNOWN_TABLE_ID, "Others", 1, ints, strings);
-
-            PrefManager.AddSpacer();
-            PrefManager.AddSpacer();
-
-            PrefManager.RegisterMenu(PreferencesManager.MenuType.PauseMenu);
+            PrefManager.RegisterMenu(PreferenceSystemManager.MenuType.PauseMenu);
         }
 
         #region Logging

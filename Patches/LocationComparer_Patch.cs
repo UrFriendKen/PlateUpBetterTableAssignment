@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using Kitchen;
 using System.Collections.Generic;
-using System.Globalization;
 using Unity.Entities;
 using UnityEngine;
 
@@ -10,7 +9,6 @@ namespace KitchenBetterTableAssignment.Patches
     [HarmonyPatch]
     internal static class LocationComparer_Patch
     {
-
         private enum TableType
         {
             Unknown,
