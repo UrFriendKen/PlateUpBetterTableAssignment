@@ -1,60 +1,19 @@
 ﻿using HarmonyLib;
 using Kitchen;
-using System.Collections.Generic;
 using Unity.Entities;
-using UnityEngine;
 
 namespace KitchenBetterTableAssignment.Patches
 {
     [HarmonyPatch]
     internal static class LocationComparer_Patch
     {
-        private enum TableType
+        private static int CompareTableType(int table1ID, int table2ID)
         {
-            Unknown,
-            Bar,
-            Simple,
-            Fancy,
-            Metal
-        }
-
-        private static readonly Dictionary<TableType, string> tableTypePriorityPrefKey = new Dictionary<TableType, string>()
-        {
-            { TableType.Bar, Main.BAR_TABLE_ID },
-            { TableType.Simple, Main.SIMPLE_TABLE_ID },
-            { TableType.Fancy, Main.FANCY_TABLE_ID },
-            { TableType.Metal, Main.METAL_TABLE_ID },
-            { TableType.Unknown, Main.UNKNOWN_TABLE_ID }
-        };
-
-        private static int CompareTableType(TableType x, TableType y)
-        {
-            return Main.PrefManager.Get<int>(tableTypePriorityPrefKey[x]).CompareTo(Main.PrefManager.Get<int>(tableTypePriorityPrefKey[y]));
-        }
-
-        private static TableType GetTableType(CTableSetModifier modifier)
-        {
-            int thinking = Mathf.RoundToInt(modifier.PatienceModifiers.Thinking * 100);
-            if (modifier.OrderingModifiers.SidesOptional)
+            try
             {
-                return TableType.Metal;
+                return Main.PrefManager.Get<int>(table1ID.ToString()).CompareTo(Main.PrefManager.Get<int>(table2ID.ToString()));
             }
-            else if (Mathf.Round(modifier.OrderingModifiers.PriceModifier * 10) == 5)
-            {
-                return TableType.Fancy;
-            }
-            else if (thinking == 5)
-            {
-                return TableType.Bar;
-            }
-            else if (modifier.OrderingModifiers.GroupOrdersSame && thinking == 300)
-            {
-                return TableType.Simple;
-            }
-            else
-            {
-                return TableType.Unknown;
-            }
+            catch { return 0; }
         }
 
 
@@ -70,16 +29,14 @@ namespace KitchenBetterTableAssignment.Patches
                 return false;
             }
 
-            EntityManager em = TableController.Manager;
-            if (em != null)
+            if (TableController.Static_TryGetBuffer(x.Entity, out DynamicBuffer<CTableSetParts> buffer1) &&
+                buffer1.Length > 0 &&
+                TableController.Static_Require(buffer1[0].Entity, out CAppliance table1) &&
+                TableController.Static_TryGetBuffer(y.Entity, out DynamicBuffer<CTableSetParts> buffer2) &&
+                buffer2.Length > 0 &&
+                TableController.Static_Require(buffer2[0].Entity, out CAppliance table2))
             {
-                if (em.HasComponent<CTableSetModifier>(x.Entity) && em.HasComponent<CTableSetModifier>(y.Entity))
-                {
-                    CTableSetModifier xModifier = em.GetComponentData<CTableSetModifier>(x.Entity);
-                    CTableSetModifier yModifier = em.GetComponentData<CTableSetModifier>(y.Entity);
-
-                    __result = CompareTableType(GetTableType(xModifier), GetTableType(yModifier));
-                }
+                __result = CompareTableType(table1.ID, table2.ID);
             }
 
             if (__result != 0)

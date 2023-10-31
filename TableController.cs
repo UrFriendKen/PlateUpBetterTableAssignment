@@ -1,20 +1,33 @@
 ﻿using Kitchen;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using KitchenMods;
 using Unity.Entities;
 
 namespace KitchenBetterTableAssignment
 {
-    internal class TableController : GameSystemBase
+    internal class TableController : GameSystemBase, IModSystem
     {
-        internal static EntityManager Manager; 
+        private static TableController _instance;
+
+        protected override void Initialise()
+        {
+            base.Initialise();
+            _instance = this;
+        }
 
         protected override void OnUpdate()
         {
-            Manager = EntityManager;
+        }
+
+        public static bool Static_Require<T>(Entity e, out T comp) where T : struct, IComponentData
+        {
+            comp = default;
+            return _instance?.Require(e, out comp) ?? false;
+        }
+
+        public static bool Static_TryGetBuffer<T>(Entity e, out DynamicBuffer<T> buffer) where T : struct, IBufferElementData
+        {
+            buffer = default;
+            return _instance?.RequireBuffer(e, out buffer) ?? false;
         }
     }
 }

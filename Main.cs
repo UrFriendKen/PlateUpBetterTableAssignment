@@ -1,7 +1,10 @@
 ﻿using HarmonyLib;
+using Kitchen;
+using KitchenData;
 using KitchenMods;
 using PreferenceSystem;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -12,14 +15,9 @@ namespace KitchenBetterTableAssignment
     {
         public const string MOD_GUID = "IcedMilo.PlateUp.BetterTableAssignment";
         public const string MOD_NAME = "BetterTableAssignment";
-        public const string MOD_VERSION = "1.0.1";
+        public const string MOD_VERSION = "1.0.2";
 
         internal static PreferenceSystemManager PrefManager;
-        internal const string BAR_TABLE_ID = "barTable";
-        internal const string SIMPLE_TABLE_ID = "simpleTable";
-        internal const string FANCY_TABLE_ID = "fancyTable";
-        internal const string METAL_TABLE_ID = "metalTable";
-        internal const string UNKNOWN_TABLE_ID = "otherTable";
 
         Harmony _harmony;
         static List<Assembly> PatchedAssemblies = new List<Assembly>();
@@ -42,10 +40,12 @@ namespace KitchenBetterTableAssignment
         {
             // For log file output so the official plateup support staff can identify if/which a mod is being used
             LogWarning($"{MOD_GUID} v{MOD_VERSION} in use!");
-            SetupPreferences();
         }
 
-        public void PreInject() { }
+        public void PreInject()
+        {
+            SetupPreferences();
+        }
 
         public void PostInject() { }
 
@@ -53,23 +53,57 @@ namespace KitchenBetterTableAssignment
         {
             PrefManager = new PreferenceSystemManager(MOD_GUID, MOD_NAME);
 
-            int[] ints = { 1, 2, 3, 4, 5 };
-            string[] strings = { "1", "2", "3", "4", "5" };
+            List<Appliance> tables = new List<Appliance>();
+            foreach (Appliance appliance in GameData.Main.Get<Appliance>().Where(
+                x => x.Properties.Select(prop => prop.GetType()).Contains(typeof(CApplianceTable))))
+            {
+                foreach (IApplianceProperty prop in appliance.Properties)
+                {
+                    if (prop is CApplianceTable cApplianceTable && !cApplianceTable.IsWaitingTable)
+                    {
+                        tables.Add(appliance);
+                        break;
+                    }
+                }
+            }
+
+            List<int> intsList = new List<int>()
+            {
+                int.MaxValue
+            };
+            List<string> stringsList = new List<string>()
+            {
+                "Ignore"
+            };
+            for (int i = 1; i < tables.Count + 1; i++)
+            {
+                intsList.Add(i);
+                stringsList.Add(i.ToString());
+            }
+
+
+            int[] ints = intsList.ToArray();
+            string[] strings = stringsList.ToArray();
             PrefManager
                 .AddLabel("Better Table Assignment")
                 .AddInfo("Assign table priority. Customers will prefer tables with a higher priority.")
                 .AddInfo("Highest priority: 1")
-                .AddInfo("Lowest priotity : 5")
-                .AddLabel("Bar Table")
-                .AddOption<int>(BAR_TABLE_ID, 1, ints, strings)
-                .AddLabel("Simple Table")
-                .AddOption<int>(SIMPLE_TABLE_ID, 1, ints, strings)
-                .AddLabel("Fancy Table")
-                .AddOption<int>(FANCY_TABLE_ID, 1, ints, strings)
-                .AddLabel("Metal Table")
-                .AddOption<int>(METAL_TABLE_ID, 1, ints, strings)
-                .AddLabel("Others")
-                .AddOption<int>(UNKNOWN_TABLE_ID, 1, ints, strings)
+                .AddInfo($"Lowest priority : {tables.Count}")
+                .AddPageSelector(3)
+                .AddSpacer();
+            foreach (Appliance table in tables)
+            {
+                PrefManager
+                    .StartPagedItem()
+                    .AddLabel(table.name)
+                    .AddOption(
+                        table.ID.ToString(),
+                        int.MaxValue,
+                        ints,
+                        strings)
+                    .PagedItemDone();
+            }
+            PrefManager
                 .AddSpacer()
                 .AddSpacer();
 
