@@ -6,7 +6,6 @@ using PreferenceSystem;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UnityEngine;
 
 // Namespace should have "Kitchen" in the beginning
 namespace KitchenBetterTableAssignment
@@ -15,7 +14,7 @@ namespace KitchenBetterTableAssignment
     {
         public const string MOD_GUID = "IcedMilo.PlateUp.BetterTableAssignment";
         public const string MOD_NAME = "BetterTableAssignment";
-        public const string MOD_VERSION = "1.0.2";
+        public const string MOD_VERSION = "1.0.3";
 
         internal static PreferenceSystemManager PrefManager;
 
@@ -55,11 +54,12 @@ namespace KitchenBetterTableAssignment
 
             List<Appliance> tables = new List<Appliance>();
             foreach (Appliance appliance in GameData.Main.Get<Appliance>().Where(
-                x => x.Properties.Select(prop => prop.GetType()).Contains(typeof(CApplianceTable))))
+                x => x.Properties.Select(prop => prop?.GetType()).Contains(typeof(CApplianceTable))))
             {
                 foreach (IApplianceProperty prop in appliance.Properties)
                 {
-                    if (prop is CApplianceTable cApplianceTable && !cApplianceTable.IsWaitingTable)
+                    if (prop != null &&
+                        prop is CApplianceTable cApplianceTable && !cApplianceTable.IsWaitingTable)
                     {
                         tables.Add(appliance);
                         break;
