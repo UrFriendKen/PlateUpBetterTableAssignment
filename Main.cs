@@ -6,6 +6,7 @@ using PreferenceSystem;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 // Namespace should have "Kitchen" in the beginning
 namespace KitchenBetterTableAssignment
@@ -37,7 +38,6 @@ namespace KitchenBetterTableAssignment
 
         public void PostActivate(Mod mod)
         {
-            // For log file output so the official plateup support staff can identify if/which a mod is being used
             LogWarning($"{MOD_GUID} v{MOD_VERSION} in use!");
         }
 
@@ -111,7 +111,6 @@ namespace KitchenBetterTableAssignment
         }
 
         #region Logging
-        // You can remove this, I just prefer a more standardized logging
         public static void LogInfo(string _log) { Debug.Log($"[{MOD_NAME}] " + _log); }
         public static void LogWarning(string _log) { Debug.LogWarning($"[{MOD_NAME}] " + _log); }
         public static void LogError(string _log) { Debug.LogError($"[{MOD_NAME}] " + _log); }
